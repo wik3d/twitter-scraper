@@ -166,6 +166,7 @@ export async function getProfile(
   if (errors != null && errors.length > 0) {
     return {
       success: false,
+      isRateLimit: false,
       err: new Error(errors[0].message),
     };
   }
@@ -173,6 +174,7 @@ export async function getProfile(
   if (!value.data || !value.data.user || !value.data.user.result) {
     return {
       success: false,
+      isRateLimit: false,
       err: new Error('User not found.'),
     };
   }
@@ -182,6 +184,7 @@ export async function getProfile(
   if (user.rest_id == null || user.rest_id.length === 0) {
     return {
       success: false,
+      isRateLimit: false,
       err: new Error('rest_id not found.'),
     };
   }
@@ -191,12 +194,14 @@ export async function getProfile(
   if (legacy.screen_name == null || legacy.screen_name.length === 0) {
     return {
       success: false,
+      isRateLimit: false,
       err: new Error(`Either ${username} does not exist or is private.`),
     };
   }
 
   return {
     success: true,
+    isRateLimit: false,
     value: parseProfile(user.legacy, user.is_blue_verified),
   };
 }
@@ -209,7 +214,7 @@ export async function getUserIdByScreenName(
 ): Promise<RequestApiResult<string>> {
   const cached = idCache.get(screenName);
   if (cached != null) {
-    return { success: true, value: cached };
+    return { success: true, value: cached, isRateLimit: false };
   }
 
   const profileRes = await getProfile(screenName, auth);
@@ -223,12 +228,14 @@ export async function getUserIdByScreenName(
 
     return {
       success: true,
+      isRateLimit: false,
       value: profile.userId,
     };
   }
 
   return {
     success: false,
+    isRateLimit: false,
     err: new Error('User ID is undefined.'),
   };
 }

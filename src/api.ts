@@ -35,8 +35,9 @@ export const bearerToken =
  * An API result container.
  */
 export type RequestApiResult<T> =
-  | { success: true; value: T }
-  | { success: false; err: Error };
+  | { success: true; value: T; isRateLimit: false }
+  | { success: false; value: any; isRateLimit: true }
+  | { success: false; err: Error; isRateLimit: false };
 
 /**
  * Used internally to send HTTP requests to the Twitter API.
@@ -54,47 +55,57 @@ export async function requestApi<T>(
   await auth.installTo(headers, url);
 
   let res: Response;
-  do {
-    try {
-      res = await auth.fetch(url, {
-        method,
-        headers,
-      });
-    } catch (err) {
-      if (!(err instanceof Error)) {
-        throw err;
-      }
 
-      return {
-        success: false,
-        err: new Error('Failed to perform request.'),
-      };
+  try {
+    res = await auth.fetch(url, {
+      method,
+      headers,
+    });
+  } catch (err) {
+    if (!(err instanceof Error)) {
+      throw err;
     }
 
-    await updateCookieJar(auth.cookieJar(), res.headers);
+    return {
+      success: false,
+      isRateLimit: false,
+      err: new Error('Failed to perform request.'),
+    };
+  }
 
-    if (res.status === 429) {
-      /*
+  await updateCookieJar(auth.cookieJar(), res.headers);
+
+  if (res.status === 429) {
+    /*
       Known headers at this point:
       - x-rate-limit-limit: Maximum number of requests per time period?
       - x-rate-limit-reset: UNIX timestamp when the current rate limit will be reset.
       - x-rate-limit-remaining: Number of requests remaining in current time period?
       */
-      const xRateLimitRemaining = res.headers.get('x-rate-limit-remaining');
-      const xRateLimitReset = res.headers.get('x-rate-limit-reset');
-      if (xRateLimitRemaining == '0' && xRateLimitReset) {
-        const currentTime = new Date().valueOf() / 1000;
-        const timeDeltaMs = 1000 * (parseInt(xRateLimitReset) - currentTime);
+    const xRateLimitRemaining = res.headers.get('x-rate-limit-remaining');
+    const xRateLimitReset = res.headers.get('x-rate-limit-reset');
+    const requestsToRateLimit = res.headers.get('x-rate-limit-limit');
+    if (xRateLimitRemaining == '0' && xRateLimitReset) {
+      const currentTime = new Date().valueOf() / 1000;
+      const timeDeltaMs = 1000 * (parseInt(xRateLimitReset) - currentTime);
 
-        // I have seen this block for 800s (~13 *minutes*)
-        await new Promise((resolve) => setTimeout(resolve, timeDeltaMs));
-      }
+      return {
+        success: false,
+        isRateLimit: true,
+        value: {
+          isRateLimit: true,
+          timeLeftMS: timeDeltaMs,
+          resetTimestamp: xRateLimitReset,
+          requestsTillRateLimit: requestsToRateLimit,
+        },
+      };
     }
-  } while (res.status === 429);
+  }
 
   if (!res.ok) {
     return {
       success: false,
+      isRateLimit: false,
       err: await ApiError.fromResponse(res),
     };
   }
@@ -102,9 +113,9 @@ export async function requestApi<T>(
   const value: T = await res.json();
   if (res.headers.get('x-rate-limit-incoming') == '0') {
     auth.deleteToken();
-    return { success: true, value };
+    return { success: true, value, isRateLimit: false };
   } else {
-    return { success: true, value };
+    return { success: true, value, isRateLimit: false };
   }
 }
 

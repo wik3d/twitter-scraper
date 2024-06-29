@@ -15,8 +15,13 @@ export async function getTrends(auth: TwitterAuth): Promise<string[]> {
     `https://api.twitter.com/2/guide.json?${params.toString()}`,
     auth,
   );
+
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   const instructions = res.value.timeline?.instructions ?? [];

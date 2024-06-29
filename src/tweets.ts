@@ -123,7 +123,11 @@ export async function fetchTweets(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   return parseTimelineTweetsV2(res.value);
@@ -155,7 +159,11 @@ export async function fetchTweetsAndReplies(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   return parseTimelineTweetsV2(res.value);
@@ -185,7 +193,11 @@ export async function fetchListTweets(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   return parseListTimelineTweets(res.value);
@@ -200,7 +212,11 @@ export function getTweets(
     const userIdRes = await getUserIdByScreenName(q, auth);
 
     if (!userIdRes.success) {
-      throw userIdRes.err;
+      if (userIdRes.isRateLimit) {
+        return userIdRes.value;
+      } else {
+        throw userIdRes.err;
+      }
     }
 
     const { value: userId } = userIdRes;
@@ -228,7 +244,11 @@ export function getTweetsAndReplies(
     const userIdRes = await getUserIdByScreenName(q, auth);
 
     if (!userIdRes.success) {
-      throw userIdRes.err;
+      if (userIdRes.isRateLimit) {
+        return userIdRes.value;
+      } else {
+        throw userIdRes.err;
+      }
     }
 
     const { value: userId } = userIdRes;
@@ -276,7 +296,11 @@ export async function fetchLikedTweets(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   return parseTimelineTweetsV2(res.value);
@@ -291,7 +315,11 @@ export function getLikedTweets(
     const userIdRes = await getUserIdByScreenName(q, auth);
 
     if (!userIdRes.success) {
-      throw userIdRes.err;
+      if (userIdRes.isRateLimit) {
+        return userIdRes.value;
+      } else {
+        throw userIdRes.err;
+      }
     }
 
     const { value: userId } = userIdRes;
@@ -374,7 +402,11 @@ export async function getTweet(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   if (!res.value) {
@@ -399,7 +431,11 @@ export async function getTweetAnonymous(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   if (!res.value.data) {

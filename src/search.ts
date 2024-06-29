@@ -148,7 +148,11 @@ async function getSearchTimeline(
   );
 
   if (!res.success) {
-    throw res.err;
+    if (res.isRateLimit) {
+      return res.value;
+    } else {
+      throw res.err;
+    }
   }
 
   return res.value;
